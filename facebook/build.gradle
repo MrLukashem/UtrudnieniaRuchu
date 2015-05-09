@@ -1,0 +1,34 @@
+apply plugin: 'com.android.library'
+
+repositories {
+  mavenCentral()
+}
+
+project.group = 'com.facebook.android'
+
+dependencies {
+    compile 'com.android.support:support-v4:[21,22)'
+    compile 'com.parse.bolts:bolts-android:1.1.4'
+}
+
+android {
+    compileSdkVersion 21
+    buildToolsVersion '21.1.1'
+
+    defaultConfig {
+        minSdkVersion 14
+        targetSdkVersion 21
+    }
+
+    lintOptions {
+        abortOnError false
+    }
+
+    sourceSets {
+        main {
+            manifest.srcFile 'AndroidManifest.xml'
+            java.srcDirs = ['src']
+            res.srcDirs = ['res']
+        }
+    }
+}

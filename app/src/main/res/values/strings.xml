@@ -1,0 +1,110 @@
+<resources>
+    <string name="facebook_app_id">1414885615497152</string>
+    <string name="app_name">UtrudnieniaRuchu</string>
+
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+    <string name="google_maps_key" translatable="false" templateMergeStrategy="preserve">
+    </string>
+
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="new_marker">Dodaj</string>
+    <string name="setting">Opcje</string>
+    <string name="search">Szukaj</string>
+    <string name="maps_categories">Rodzaj mapy</string>
+    <string name="filtr">Filtruj</string>
+    <string name="categories">Kategorie</string>
+    <string name="help">Pomoc</string>
+    <string name="log_in">Zaloguj się</string>
+    <string name="cat_choice_title">Wybierz kategorie</string>
+    <string name="ok">Ok</string>
+    <string name="cancel">Anuluj</string>
+    <string name="terrein">Teren</string>
+    <string name="satelite">Satelita</string>
+    <string name="form_title">Wypełnij formularz</string>
+    <string name="email">Adres e-mail</string>
+    <string name="content">Krótki opis...</string>
+    <string name="onLongClickOnMapString">
+        Proszę przytrzymać w miejscu gdzie ma się znaleźć nowe utrudnienie.</string>
+    <string name="drawer_open">open</string>
+    <string name="drawer_close">close</string>
+    <string name="dialog_problem_info_title">Opis przypadku</string>
+    <string name="logged_in">Zaloguj się</string>
+    <string name="logged_out">Wyloguj się</string>
+    <string name="login">Login</string>
+    <string name="password">Hasło</string>
+    <string name="register_info">Proszę wypełnić pola</string>
+    <string name="currentPosition">Dodać z aktualnej pozycji?</string>
+    <string name="start_location">Locacja startowa</string>
+
+    <string-array name="categories">
+        <item>Zbyt długie oczekiwanie na światła</item>
+        <item>Zbyt krótkie zielone światło</item>
+        <item>Brak możliwości przejścia dwóch jezdni na raz</item>
+        <item>Awaria sygnalizacji</item>
+        <item>Zbyt niski peron przystanku</item>
+        <item>Potrzeba zmiany lokalizacji przystanku</item>
+        <item>Wysoki krawężnik</item>
+        <item>Brak podjazdu/rampy</item>
+        <item>Niedziałająca winda</item>
+        <item>Brak możliwości zaparkowania roweru</item>
+        <item>Utrudnione/niemożliwe przejechanie</item>
+        <item>Brak możliwości zjazdu/wjazdu z/na ścieżkę rowerową</item>
+        <item>Konieczne uspokojenie ruchu</item>
+        <item>Nieuporządkowana zieleń</item>
+        <item>Zniszczona nawierzchnia</item>
+        <item>Miejsce często blokowane przez parkujące samochody</item>
+        <item>Brak widoczności uczestników ruchu</item>
+        <item>Niebezpieczne miejsce</item>
+        <item>Źle zaparkowane auto</item>
+        <item>Niedziałające oświetlenie uliczne</item>
+    </string-array>
+
+    <string-array name="categoriesColors">
+        <item>Zbyt długie oczekiwanie na światła</item>
+        <item>Zbyt krótkie zielone światło</item>
+        <item>Brak możliwości przejścia dwóch jezdni na raz</item>
+        <item>Awaria sygnalizacji</item>
+        <item>Zbyt niski peron przystanku</item>
+        <item>Potrzeba zmiany lokalizacji przystanku</item>
+        <item>Wysoki krawężnik</item>
+        <item>Brak podjazdu/rampy</item>
+        <item>Niedziałająca winda</item>
+        <item>Brak możliwości zaparkowania roweru</item>
+        <item>Utrudnione/niemożliwe przejechanie</item>
+        <item>Brak możliwości zjazdu/wjazdu z/na ścieżkę rowerową</item>
+        <item>Konieczne uspokojenie ruchu</item>
+        <item>Nieuporządkowana zieleń</item>
+        <item>Zniszczona nawierzchnia</item>
+        <item>Miejsce często blokowane przez parkujące samochody</item>
+        <item>Brak widoczności uczestników ruchu</item>
+        <item>Niebezpieczne miejsce</item>
+        <item>Źle zaparkowane auto</item>
+        <item>Niedziałające oświetlenie uliczne</item>
+    </string-array>
+    <string name="title_activity_log_in">Logowanie</string>
+
+    <style name="ButtonText">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textColor">#ffffff</item>
+        <item name="android:gravity">center</item>
+        <item name="android:layout_margin">3dp</item>
+        <item name="android:textSize">20dp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:shadowColor">#000000</item>
+        <item name="android:shadowDx">1</item>
+        <item name="android:shadowDy">1</item>
+        <item name="android:shadowRadius">2</item>
+    </style>
+
+    <style name="fbGoogleButtonsStyle">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textColor">#ffffff</item>
+        <item name="android:gravity">center</item>
+        <item name="android:layout_margin">3dp</item>
+        <item name="android:textSize">20dp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+</resources>
