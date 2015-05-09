@@ -51,6 +51,7 @@ import java.util.prefs.PreferenceChangeListener;
  */
 /*
 TODO: Settingsy!
+TODO: Scustomizować dialog markera
  */
 public class MainActivity extends ActionBarActivity
         implements OnMapReadyCallback, NewMarkerOnMap, SharedPreferences.OnSharedPreferenceChangeListener, LocationListener {
@@ -344,13 +345,20 @@ public class MainActivity extends ActionBarActivity
 
             @Override
             public View getInfoContents(final Marker __marker) {
+                ProblemInstance _problem =
+                        ObjectsOnMapHandler.objectsOnMapHandler.findProblemByMarker(__marker);
                 LayoutInflater _inflater = getLayoutInflater();
                 View _custom_view = _inflater.inflate(R.layout.window_info_content, null);
+
                 TextView _content = (TextView) _custom_view.findViewById(R.id.contentWindowInfoTextView);
                 _content.setText(__marker.getSnippet());
+
                 TextView _title = (TextView) _custom_view.findViewById(R.id.titleWindowInfoTextView);
                 _title.setText(__marker.getTitle());
-                //TODO: wyświetlanie większej porcji informacji w oknie dialogowym! Czy tak jest okej?
+
+                TextView _author = (TextView)_custom_view.findViewById(R.id.authorName);
+                String _nick = _problem.getEmail().split("@")[0];
+                _author.setText(_nick);
 
                 return _custom_view;
             }
@@ -505,15 +513,19 @@ public class MainActivity extends ActionBarActivity
             Location _location;
             try {
                 _location = gpsTracker.getLocation();
+
+                if(_location == null) {
+                    _location = gpsTracker.getLocation();
+                    if(_location == null) {
+                        isFromCurrentPosition = false;
+                        gpsTracker.stopUsingGPS();
+                        gpsTracker.showErrorWindow(getFragmentManager());
+                    }
+                    return;
+                }
             } catch(GPSTracker.LocationException __exc) {
                 Log.e("gps provider exc:", __exc.toString());
                 gpsTracker.showErrorWindow(getFragmentManager());
-                return;
-            }
-
-            if(_location == null) {
-                isFromCurrentPosition = false;
-                gpsTracker.stopUsingGPS();
                 return;
             }
 

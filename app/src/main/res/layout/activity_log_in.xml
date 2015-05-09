@@ -5,14 +5,13 @@
               android:layout_width="match_parent"
               android:orientation="vertical"
               android:padding="15dp"
-              android:background="#6FAECD" style="bold">
+              style="bold">
 
     <EditText
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:id="@+id/logInActivityEmailEditText"
             android:layout_gravity="center_horizontal"
-            android:textColor="#ffffff"
             android:hint="Email"
             android:inputType="textEmailAddress"
             android:paddingBottom="10dp"/>
@@ -21,7 +20,6 @@
             android:layout_height="wrap_content"
             android:id="@+id/logInActivityPasswordEditText"
             android:layout_gravity="center_horizontal"
-            android:textColor="#ffffff"
             android:inputType="textPassword"
             android:hint="Hasło"
             android:paddingBottom="10dp"/>
@@ -36,31 +34,6 @@
     <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:id="@+id/textView3"
-            android:layout_gravity="center_horizontal"
-            android:text="Lub"
-            android:paddingTop="20dp"
-            android:paddingBottom="20dp"
-            android:paddingLeft="5dp"
-            android:paddingRight="5dp"
-            android:textSize="14dp"
-            android:textColor="#ffffff"
-            android:textStyle="bold"
-          />
-
-    <com.facebook.login.widget.LoginButton
-            android:id="@+id/connectWithFbButton"
-            style="@style/ButtonText"
-            />
-
-    <com.google.android.gms.common.SignInButton
-            android:id="@+id/sign_in_button"
-            style="@style/ButtonText"
-            />
-
-    <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
             android:id="@+id/textView4"
             android:layout_gravity="center_horizontal"
             android:text="Nie posiadasz konta?"
@@ -69,7 +42,6 @@
             android:paddingLeft="5dp"
             android:paddingRight="5dp"
             android:textSize="14dp"
-            android:textColor="#ffffff"
             android:textStyle="bold"
             />
 
@@ -80,5 +52,31 @@
             style="@style/ButtonText"
             android:onClick="registerButtonOnClick">
     </Button>
+
+    <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/textView3"
+            android:layout_gravity="center_horizontal"
+            android:text="Lub"
+            android:paddingTop="20dp"
+            android:paddingBottom="20dp"
+            android:paddingLeft="5dp"
+            android:paddingRight="5dp"
+            android:textSize="14dp"
+            android:textStyle="bold"
+          />
+
+    <com.facebook.login.widget.LoginButton
+            android:id="@+id/connectWithFbButton"
+            android:layout_gravity="bottom"
+            style="@style/ButtonText"
+            />
+
+    <com.google.android.gms.common.SignInButton
+            android:id="@+id/sign_in_button"
+            android:layout_gravity="bottom"
+            style="@style/ButtonText"
+            />
 
 </LinearLayout>

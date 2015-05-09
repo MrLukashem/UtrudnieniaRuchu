@@ -157,7 +157,10 @@ public class GPSTracker extends Service implements LocationListener {
     }
 
     public void showErrorWindow(FragmentManager __fragmentManager) {
-
+        __fragmentManager
+                .beginTransaction()
+                .add(new NoGpsEnableDialogFragment(), "GpsDialog")
+                .commit();
     }
 
     public class LocationException extends Exception {
