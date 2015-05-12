@@ -29,6 +29,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
+import java.util.EventObject;
 import java.util.List;
 
 /**
@@ -47,9 +48,11 @@ public class CallAPI {
     private static String problemsByTypeString
             = "http://virt2.iiar.pwr.edu.pl/api/zgloszenia/getByType";
     private static String addNewUserString
-            = "http://virt2.iiar.pwr.edu.pl:8080/RestApi/service/uzytkownicy/post";
+            = "http://virt2.iiar.pwr.edu.pl/api/uzytkownicy/register";
+    private static String loginUser
+            = "http://virt2.iiar.pwr.edu.pl:8080/RestApi/service/uzytkownicy/login";
     private static String addNewProblemString
-            = "http://virt2.iiar.pwr.edu.pl:8080/RestApi/service/zgloszenia/post";
+            = "http://virt2.iiar.pwr.edu.pl/zgloszenia/post";
 
     private CallAPI() { };
 
@@ -60,7 +63,13 @@ public class CallAPI {
         return callAPIInstance;
     }
 
-    public static enum GetOperation {
+    public enum LoginWith {
+        app,
+        facebook,
+        google
+    }
+
+    public enum GetOperation {
         GET_USERS_LIST {
             @Override
             public String toString() {
@@ -93,7 +102,7 @@ public class CallAPI {
         };
     }
 
-    public static enum PostOperation {
+    public enum PostOperation {
         ADD_NEW_USER {
             @Override
             public String toString() {
@@ -115,11 +124,18 @@ public class CallAPI {
         return getApi;
     }
 
-    public AsyncTask getUsersListToUserManager() {
-        GetApi getApi = new GetApi(GetOperation.GET_USERS_LIST);
-        getApi.execute();
+    public AsyncTask logInUser() {
+        PostLoginUserApi loginUserApi = new PostLoginUserApi();
+        loginUserApi.execute();
 
-        return getApi;
+        return loginUserApi;
+    }
+
+    public AsyncTask logInUserWithFB() {
+        PostLogInUserWithFBApi logInUserWithFBApi = new PostLogInUserWithFBApi();
+        logInUserWithFBApi.execute();
+
+        return logInUserWithFBApi;
     }
 
     public AsyncTask addProblem(ProblemInstance __problem) {
@@ -232,9 +248,9 @@ public class CallAPI {
 
             try {
                 String _string =
-                        "{\"nick\":\"" + params[1] + "\",\n"
-                        + "\"email\":\"" + params[0] + "\",\n"
-                        + "\"haslo\":\"" + params[2] +"\"\n"
+                        "{\"uzytkownicy\":\n"
+                        + "{\"email\":\"" + params[0] + "\",\n"
+                        + "\"haslo\":\"" + params[2] +"\"}\n"
                         + "}";
 
                 _json_out = new JSONObject(_string);
@@ -270,7 +286,146 @@ public class CallAPI {
                 return -1;
             }
 
-            return 1;
+            return 0;
+        }
+    }
+
+    public class PostLoginUserApi extends AsyncTask<Integer, Integer, Integer> {
+
+        @Override
+        protected Integer doInBackground(Integer... __params) {
+            JSONObject _json_out;
+            try {
+                String _string = "{\"uzytkownicy\":\n"
+                        + "{\"email\":\"" + UserManager.getInstance().getEmail() + "\",\n"
+                        + "\"haslo\":\"" + UserManager.getInstance().getPassword() + "\"}\n"
+                        + "}";
+
+                _json_out = new JSONObject(_string);
+            } catch (JSONException __json_exc) {
+                Log.e("convertProblem error", __json_exc.toString());
+                UserManager.getInstance().setError(-1);
+                return -1;
+            }
+            OutputStreamWriter _out;
+            BufferedReader _reader;
+
+            try {
+                URL _url = new URL(loginUser);
+                URLConnection _url_connection = _url.openConnection();
+                _url_connection.setDoOutput(true);
+                _url_connection.setRequestProperty("Content-Type", "application/json");
+                _url_connection.setConnectTimeout(5000);
+                _url_connection.setReadTimeout(5000);
+                _out = new OutputStreamWriter(_url_connection.getOutputStream());
+                _out.write(_json_out.toString());
+                _out.close();
+
+                _reader = new BufferedReader(new InputStreamReader(_url_connection.getInputStream()));
+                String _reader_out;
+                if((_reader_out = _reader.readLine()) != null) {
+                    Log.e("serwer output:", _reader_out);
+                    JSONObject _json = new JSONObject(_reader_out);
+                    UserManager.getInstance().setToken(_json.getString("token"));
+                    return 0;
+                } else {
+                    UserManager.getInstance().setError(-3);
+                }
+                _reader.close();
+
+            } catch(JSONException __json) {
+                Log.e("json excp", __json.toString());
+            } catch (Exception __e) {
+                Log.e("connection exc", "Nie mozna ustanowic polaczenia" + __e.toString());
+                UserManager.getInstance().setError(-2);
+                return -2;
+            }
+
+            return 0;
+        }
+    }
+
+    public class PostLogInUserWithFBApi extends AsyncTask<Integer, Integer, Integer> {
+
+        @Override
+        protected Integer doInBackground(Integer... __params) {
+            JSONObject _json_out;
+
+            try {
+                String _string = "{\"uzytkownicy\":\n"
+                        + "{\"email\":\"" + UserManager.getInstance().getEmail() + "\",\n"
+                        + "\"haslo\":\"" + UserManager.getInstance().getFBId() + "\"}\n"
+                        + "}";
+
+                _json_out = new JSONObject(_string);
+            } catch (JSONException __json_exc) {
+                Log.e("convertProblem error", __json_exc.toString());
+                UserManager.getInstance().setError(-1);
+                return -1;
+            }
+
+            OutputStreamWriter _out;
+            BufferedReader _reader;
+
+            try {
+                URL _url = new URL(addNewProblemString);
+                URLConnection _url_connection = _url.openConnection();
+                _url_connection.setDoOutput(true);
+                _url_connection.setRequestProperty("Content-Type", "application/json");
+                _url_connection.setConnectTimeout(5000);
+                _url_connection.setReadTimeout(5000);
+                _out = new OutputStreamWriter(_url_connection.getOutputStream());
+                _out.write(_json_out.toString());
+                _out.close();
+
+
+                _reader = new BufferedReader(new InputStreamReader(_url_connection.getInputStream()));
+                String _reader_out;
+                while ((_reader_out = _reader.readLine()) != null) {
+                    Log.e("ADD_NEW_PROBLEM error", _reader_out);
+                    JSONObject _json = new JSONObject(_reader_out);
+                    UserManager.getInstance().setToken(_json.getString("token"));
+                    return 0;
+                }
+                _reader.close();
+
+            } catch (Exception __e) {
+                Log.e("connection exc", "Nie mozna ustanowic polaczenia" + __e.toString());
+                UserManager.getInstance().setError(-2);
+                return -2;
+            }
+
+            return 0;
+        }
+    }
+
+    //TODO: zamaist masy kodu
+    public void transferData(JSONObject __json, String __address) {
+        try {
+            URL _url = new URL(addNewProblemString);
+            URLConnection _url_connection = _url.openConnection();
+            _url_connection.setDoOutput(true);
+            _url_connection.setRequestProperty("Content-Type", "application/json");
+            _url_connection.setConnectTimeout(5000);
+            _url_connection.setReadTimeout(5000);
+            OutputStreamWriter _out = new OutputStreamWriter(_url_connection.getOutputStream());
+            JSONObject _json_out= new JSONObject();
+            _out.write(_json_out.toString());
+            _out.close();
+
+
+            BufferedReader _reader = new BufferedReader(new InputStreamReader(_url_connection.getInputStream()));
+            String _reader_out;
+            while ((_reader_out = _reader.readLine()) != null) {
+                Log.e("ADD_NEW_PROBLEM error", _reader_out);
+                JSONObject _json = new JSONObject(_reader_out);
+                UserManager.getInstance().setToken(_json.getString("token"));
+            }
+            _reader.close();
+
+        } catch (Exception __e) {
+            Log.e("connection exc", "Nie mozna ustanowic polaczenia" + __e.toString());
+            UserManager.getInstance().setError(-2);
         }
     }
 
@@ -290,14 +445,15 @@ public class CallAPI {
                 String _x = String.valueOf(__params[0].getCords().latitude);
                 String _y = String.valueOf(__params[0].getCords().longitude);
 
-                String _string = "{\"id_uzytkownika\":1,\n"
-                        + "\"id_typu\":" + String.valueOf(__params[0].getCategoryId()) + ",\n"
-                        + "\"id_disqus\": 5,\n"
-                        + "\"x\":" + _x + ",\n"
-                        + "\"y\":" + _y + "\n"
-                        + "}";
-
-                _json_out = new JSONObject(_string);
+                _json_out = new JSONObject()
+                        .put("zgloszenia", new JSONObject()
+                                        .put("id_typu", __params[0].getCategoryId())
+                                        .put("x", _x)
+                                        .put("y", _y)
+                                        .put("opis", __params[0].getContent())
+                                        .put("email_uzytkownika", UserManager.getInstance().getEmail())
+                                        .put("token", UserManager.getInstance().getToken())
+                        );
             } catch (JSONException __json_exc) {
                 Log.e("convertProblem error", __json_exc.toString());
                 return _id;

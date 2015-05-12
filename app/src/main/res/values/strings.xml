@@ -34,12 +34,12 @@
     <string name="login">Login</string>
     <string name="password">Hasło</string>
     <string name="register_info">Proszę wypełnić pola</string>
-    <string name="currentPosition">Dodać z aktualnej pozycji?</string>
+    <string name="currentPosition">Dodanie z aktualnej pozycji</string>
     <string name="start_location">Locacja startowa</string>
     <string name="NoGpsMsg">
         Czy chcesz włączyć gps? Ta opcja przeniesie cię do panelu ustawień.</string>
     <string name="NoGpsTitle">Błąd lokalizacji - Coś poszło nie tak!</string>
-    <string name="logInError">Błędne hasło lub adres e-mail.</string>
+    <string name="logInError">Błędne dane logowanie lub problem z serwerem.</string>
     <string name="logInErrorTitle">Błąd logowania</string>
     <string name="logInConnectionError">Nie można się połączyć z serwerem. Sprawdź połączenie z internetem
     lub spróbuj ponownie później.</string>

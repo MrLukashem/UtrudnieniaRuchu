@@ -30,9 +30,9 @@ import org.json.JSONObject;
 import java.util.Arrays;
 
 public class LogInActivity extends ActionBarActivity implements Runnable{
-    //TODO: Rejstracja + logowanie
     private LoginButton FbloginButton;
     private CallbackManager callbackManager;
+    private LoginManager loginManager;
     private android.support.v7.app.ActionBar aBar;
     private static AccessToken accessToken = null;
     private static boolean isLoggedIn = false;
@@ -45,11 +45,18 @@ public class LogInActivity extends ActionBarActivity implements Runnable{
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_log_in);
-        setActionBar();
         FacebookSdk.sdkInitialize(getApplicationContext());
         callbackManager = CallbackManager.Factory.create();
 
+        if(getIntent().getBooleanExtra("logout", false)) {
+            LoginManager.getInstance().logOut();
+            Log.e("wylogowano", "wylogowano!!!");
+            Log.e("wylogowano", "wylogowano!!!");
+            finish();
+        }
+
+        setContentView(R.layout.activity_log_in);
+        setActionBar();
         FbloginButton = (LoginButton)findViewById(R.id.connectWithFbButton);
         FbloginButton.setReadPermissions(Arrays.asList("email"));
         FbloginButton.setOnClickListener(new View.OnClickListener() {
@@ -61,21 +68,31 @@ public class LogInActivity extends ActionBarActivity implements Runnable{
                 }
             }
         });
-        //TODO: wylogowywanie z fb!?
+
         FbloginButton.registerCallback(callbackManager, new FacebookCallback<LoginResult>() {
             @Override
-            public void onSuccess(LoginResult loginResult) {
+            public void onSuccess(final LoginResult loginResult) {
                 accessToken = loginResult.getAccessToken();
                 isLoggedIn = true;
+                loginManager = LoginManager.getInstance();
+                if(loginManager != null) {
+                    Log.e("log managaer", "dziala!");
+                }
 
                 GraphRequest.newMeRequest(loginResult.getAccessToken(), new GraphRequest.GraphJSONObjectCallback() {
                     @Override
                     public void onCompleted(JSONObject object, GraphResponse response) {
                         try {
+                            String _id = object.getString("id");
                             String _email = object.getString("email");
-                            Log.e("Twoj email:", _email);
+
+                            if(!UserManager.getInstance().logInWithFB(_email, _id)) {
+                                loginManager.logOut();
+                            }
                         } catch (JSONException __json_exc) {
                             Log.e("Json exception-facebook", __json_exc.toString());
+                        } catch(ClassNotFoundException __cnf_exc) {
+                            Log.e("login button error", __cnf_exc.toString());
                         }
                     }
                 }).executeAsync();
@@ -91,6 +108,8 @@ public class LogInActivity extends ActionBarActivity implements Runnable{
                 accessToken = null;
             }
         });
+
+
 
         handler = new Handler( new Handler.Callback() {
             @Override
@@ -175,18 +194,22 @@ public class LogInActivity extends ActionBarActivity implements Runnable{
             password = _password_field.getText().toString();
 
             progressDialog =
-                    ProgressDialog.show(LogInActivity.this, "Please wait ...", "Downloading Image ...", true);
-            //TODO: max czas polaczenia w callapi
-            handler.post(this);
+                    ProgressDialog.show(LogInActivity.this, "Proszę czekać ...", "Trwa logowanie ...", true);
 
-            //TODO: asyc?
-         //   if (!UserManager.getInstance().isLoggedIn()) {
-           //     showCantLogInDialog();
-          //  } else {
-                Toast.makeText(this, "Logowanie przebiegło pomyślnie", Toast.LENGTH_LONG).show();
-                Button _log_in_button = (Button) findViewById(R.id.loginActivityLogInButton);
-                _log_in_button.setText(getResources().getString(R.string.logged_out));
-
+            //new Thread(this);
+            try {
+                if(!UserManager.getInstance().logIn(email, password)) {
+                    progressDialog.dismiss();
+                    showCantLogInDialog();
+                } else {
+                    Toast.makeText(this, "Logowanie przebiegło pomyślnie", Toast.LENGTH_LONG).show();
+                    Button _log_in_button = (Button) findViewById(R.id.loginActivityLogInButton);
+                    _log_in_button.setText(getResources().getString(R.string.logged_out));
+                }
+            } catch(Exception __exc) {
+                Log.e("userManagerExc", __exc.toString());
+            }
+            progressDialog.dismiss();
         }
     }
 
@@ -201,11 +224,16 @@ public class LogInActivity extends ActionBarActivity implements Runnable{
     @Override
     public void run() {
         try {
-            UserManager.getInstance().logIn(email, password);
+            if(!UserManager.getInstance().logIn(email, password)) {
+                progressDialog.dismiss();
+                showCantLogInDialog();
+            } else {
+                Toast.makeText(this, "Logowanie przebiegło pomyślnie", Toast.LENGTH_LONG).show();
+                Button _log_in_button = (Button) findViewById(R.id.loginActivityLogInButton);
+                _log_in_button.setText(getResources().getString(R.string.logged_out));
+            }
         } catch(Exception __exc) {
             Log.e("userManagerExc", __exc.toString());
         }
-
-        handler.sendMessage(new Message());
     }
 }

@@ -30,29 +30,16 @@
             android:layout_height="wrap_content"
             android:text="@string/currentPosition"
             android:id="@+id/currentPosCheckBox"
-            android:layout_gravity="center_horizontal"/>
+            android:layout_marginRight="10dp"
+            android:layout_gravity="right"/>
 
-    <LinearLayout
+    <Button
+            style="?android:attr/buttonStyleSmall"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:text="Załącz zdjęcie"
+            android:layout_marginRight="10dp"
+            android:id="@+id/newMarkerFormContentImageButton"
             android:layout_gravity="right"
-            android:layout_marginTop="4dp"
-            android:layout_marginLeft="4dp"
-            android:layout_marginRight="4dp">
-        <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Dodaj zdjęcie:"
-                android:id="@+id/textView5"
-                android:paddingRight="10dp"/>
-        <ImageButton
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:id="@+id/newMarkerFormContentImageButton"
-                android:background="@drawable/ic_action_new_picture"
-                android:onClick="loadImageButton"
-                />
-    </LinearLayout>
-
-
+            android:onClick="loadImageButton"/>
 </LinearLayout>

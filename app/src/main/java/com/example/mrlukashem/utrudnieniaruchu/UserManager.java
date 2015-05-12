@@ -9,16 +9,27 @@ import org.json.JSONObject;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by mrlukashem on 06.05.15.
  */
 public class UserManager {
 
+    private enum SessionKind {
+        normal,
+        facebook,
+        google
+    }
+
     private String email;
     private String login;
     private String password;
+    private String token;
+    private String fbId;
+    private SessionKind sessionKind;
 
+    private Integer error = 0;
     private boolean isLoggedIn = false;
     private final static Integer MIN_SDK = 19;
     private List<JSONObject> usersList;
@@ -40,8 +51,61 @@ public class UserManager {
         login = null;
     }
 
+    public void setError(Integer __error) {
+        error = __error;
+    }
+
+    public boolean logInWithFB(String __email, String __id)
+            throws IllegalArgumentException, NullPointerException, ClassNotFoundException {
+
+        error = 0;
+
+        if(Build.VERSION.SDK_INT >= MIN_SDK) {
+            if(!Patterns.EMAIL_ADDRESS.matcher(Objects.requireNonNull(__email)).matches()) {
+                throw new IllegalArgumentException("Wrong email format");
+            }
+
+            email = __email;
+            fbId = Objects.requireNonNull(__id);
+        } else {
+            if(__email == null || __id == null) {
+                throw new NullPointerException("Param cannot be null");
+            }
+            if(!Patterns.EMAIL_ADDRESS.matcher(Objects.requireNonNull(__email)).matches()) {
+                throw new IllegalArgumentException("Wrong email format");
+            }
+
+            email = __email;
+            fbId = __id;
+        }
+
+        try {
+            CallAPI.getInstance().logInUserWithFB().get();
+        } catch(InterruptedException __exc) {
+            Log.e("interrupted Exc", __exc.toString());
+            return false;
+        } catch(ExecutionException __exc) {
+            Log.e("Execution Exc", __exc.toString());
+            return false;
+        } catch(Exception __exc) {
+            Log.e("Exc", __exc.toString());
+            return false;
+        }
+
+        if(error != 0) {
+            return false;
+        }
+
+        sessionKind = SessionKind.facebook;
+        isLoggedIn = true;
+
+        return true;
+    }
+
     public boolean logIn(String __email, String __password)
             throws IllegalArgumentException, NullPointerException, ClassNotFoundException {
+
+        error = 0;
 
         if(Build.VERSION.SDK_INT >= MIN_SDK) {
             if(!Patterns.EMAIL_ADDRESS.matcher(Objects.requireNonNull(__email)).matches()) {
@@ -63,7 +127,7 @@ public class UserManager {
         }
 
         try {
-            CallAPI.getInstance().getUsersListToUserManager().get();
+            CallAPI.getInstance().logInUser().get();
         } catch(InterruptedException __exc) {
             Log.e("interrupted Exc", __exc.toString());
         } catch(ExecutionException __exc) {
@@ -72,26 +136,13 @@ public class UserManager {
             Log.e("Exc", __exc.toString());
         }
 
-        if(usersList != null) {
-            String _email, _password;
-            for(JSONObject object : usersList) {
-                try {
-                    _email = object.getString("email");
-                    _password = object.getString("haslo");
-
-                    if(_email.equals(__email) && _password.equals(__password)) {
-                        isLoggedIn = true;
-                        return true;
-                    }
-                } catch(JSONException __json_exc) {
-                    return false;
-                }
-            }
-        } else {
-            throw new ClassNotFoundException("cannot load usersList");
+        if(error != 0) {
+            return false;
         }
+        sessionKind = SessionKind.normal;
+        isLoggedIn = true;
 
-        return false;
+        return true;
     }
 
     public void adduser(String __email, String __login, String __password) throws IllegalArgumentException, NullPointerException {
@@ -121,7 +172,7 @@ public class UserManager {
     }
 
     public String getEmail() {
-        return "213";
+        return email;
     }
 
     public void setUsersList(List<JSONObject> __usersList) {
@@ -147,5 +198,30 @@ public class UserManager {
         }
 
         return false;
+    }
+
+    public void setToken(String __token) {
+        token = __token;
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public String getFBId() {
+        return fbId;
+    }
+
+    public boolean setFBId(String __id) {
+        if(SessionKind.facebook == sessionKind) {
+            fbId = __id;
+            return true;
+        } else {
+            return false;
+        }
     }
 }

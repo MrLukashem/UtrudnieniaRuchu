@@ -131,6 +131,11 @@ public class MainActivity extends ActionBarActivity
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        if(getIntent().getBooleanExtra("for logout", false)) {
+            finish();
+            }
+
         FacebookSdk.sdkInitialize(getApplicationContext());
         ObjectsOnMapHandler.objectsOnMapHandler.setObjectsOnMapHandler(gMap, getApplicationContext());
         setContentView(R.layout.activity_main);
@@ -189,6 +194,9 @@ public class MainActivity extends ActionBarActivity
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        Intent _intent = new Intent(getApplicationContext(), LogInActivity.class);
+        _intent.putExtra("logout", true);
+        startActivity(_intent);
         sharedPreferences.edit().putBoolean("fb_log_info", isLoggedIn).apply();
     }
 
@@ -415,7 +423,7 @@ public class MainActivity extends ActionBarActivity
             public void onItemClick(AdapterView<?> __parent, View __view, int __position, long __id) {
                 switch (__position) {
                     case NEW_MARKER:
-                        if(isLoggedIn) {
+                        if(UserManager.getInstance().isLoggedIn()) {
                             prepareToNewMarker();
                         } else {
                             Toast _toast = Toast.makeText(
