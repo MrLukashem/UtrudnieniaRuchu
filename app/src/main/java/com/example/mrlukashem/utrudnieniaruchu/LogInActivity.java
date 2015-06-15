@@ -4,20 +4,24 @@ import android.app.ActionBar;
 import android.app.AlertDialog;
 import android.app.FragmentManager;
 import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageInstaller;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Message;
+import android.preference.PreferenceManager;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.accessibility.AccessibilityManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
@@ -32,13 +36,15 @@ import java.util.Arrays;
 public class LogInActivity extends ActionBarActivity implements Runnable{
     private LoginButton FbloginButton;
     private CallbackManager callbackManager;
-    private LoginManager loginManager;
     private android.support.v7.app.ActionBar aBar;
     private static AccessToken accessToken = null;
-    private static boolean isLoggedIn = false;
+    private AccessTokenTracker accessTokenTracker;
+    private LoginManager loginManager;
     private String email;
     private String password;
     private ProgressDialog progressDialog;
+    private SharedPreferences sharedPreferences;
+    private Toast toast;
 
     private Handler handler;
 
@@ -47,25 +53,54 @@ public class LogInActivity extends ActionBarActivity implements Runnable{
         super.onCreate(savedInstanceState);
         FacebookSdk.sdkInitialize(getApplicationContext());
         callbackManager = CallbackManager.Factory.create();
+        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+        toast = Toast.makeText(this, "Logowanie przebiegło pomyślnie", Toast.LENGTH_LONG);
+
+        handler = new Handler(new Handler.Callback() {
+
+            @Override
+            public boolean handleMessage(Message __msg) {
+                progressDialog.dismiss();
+
+                if(__msg.what == 0) {
+                    showCantLogInDialog();
+                } else {
+                    toast.show();
+                    Button _log_in_button = (Button) findViewById(R.id.loginActivityLogInButton);
+                    _log_in_button.setText(getResources().getString(R.string.logged_out));
+                    finish();
+                }
+
+                return true;
+            }
+        });
 
         if(getIntent().getBooleanExtra("logout", false)) {
             LoginManager.getInstance().logOut();
-            Log.e("wylogowano", "wylogowano!!!");
-            Log.e("wylogowano", "wylogowano!!!");
+            UserManager.getInstance().logOut();
             finish();
         }
 
         setContentView(R.layout.activity_log_in);
         setActionBar();
+        loadLogInButtonState();
+
+        accessTokenTracker = new AccessTokenTracker() {
+            @Override
+            protected void onCurrentAccessTokenChanged(AccessToken __oldAccessToken, AccessToken __currentAccessToken) {
+                if (__oldAccessToken == null) {
+                    // Log in Logic
+                } else if (__currentAccessToken == null) {
+                    UserManager.getInstance().logOut();
+                }
+            }
+        };
+
         FbloginButton = (LoginButton)findViewById(R.id.connectWithFbButton);
         FbloginButton.setReadPermissions(Arrays.asList("email"));
         FbloginButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View __v) {
-                if (isLoggedIn) {
-                    accessToken = null;
-                    isLoggedIn = false;
-                }
             }
         });
 
@@ -73,11 +108,7 @@ public class LogInActivity extends ActionBarActivity implements Runnable{
             @Override
             public void onSuccess(final LoginResult loginResult) {
                 accessToken = loginResult.getAccessToken();
-                isLoggedIn = true;
                 loginManager = LoginManager.getInstance();
-                if(loginManager != null) {
-                    Log.e("log managaer", "dziala!");
-                }
 
                 GraphRequest.newMeRequest(loginResult.getAccessToken(), new GraphRequest.GraphJSONObjectCallback() {
                     @Override
@@ -89,6 +120,8 @@ public class LogInActivity extends ActionBarActivity implements Runnable{
                             if(!UserManager.getInstance().logInWithFB(_email, _id)) {
                                 loginManager.logOut();
                             }
+
+                            finish();
                         } catch (JSONException __json_exc) {
                             Log.e("Json exception-facebook", __json_exc.toString());
                         } catch(ClassNotFoundException __cnf_exc) {
@@ -100,22 +133,13 @@ public class LogInActivity extends ActionBarActivity implements Runnable{
 
             @Override
             public void onCancel() {
+                Log.e("buttn", "wylogowanie");
                 accessToken = null;
             }
 
             @Override
             public void onError(FacebookException exception) {
                 accessToken = null;
-            }
-        });
-
-
-
-        handler = new Handler( new Handler.Callback() {
-            @Override
-            public boolean handleMessage(Message __msg) {
-                progressDialog.dismiss();
-                return true;
             }
         });
     }
@@ -135,7 +159,7 @@ public class LogInActivity extends ActionBarActivity implements Runnable{
         }
         else
         if(id == android.R.id.home) {
-            finishActivity();
+            finish();
         }
 
         return super.onOptionsItemSelected(item);
@@ -145,6 +169,30 @@ public class LogInActivity extends ActionBarActivity implements Runnable{
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         callbackManager.onActivityResult(requestCode, resultCode, data);
+    }
+
+    @Override
+    public void finish() {
+        finishActivity();
+        super.finish();
+    }
+
+    private void setLogInButtonState() {
+        if(UserManager.getInstance().isLoggedIn()) {
+            sharedPreferences.edit().putBoolean("login_button_state", true).apply();
+        } else {
+            sharedPreferences.edit().putBoolean("login_button_state", false).apply();
+        }
+    }
+
+    private void loadLogInButtonState() {
+        Boolean _value = sharedPreferences.getBoolean("login_button_state", false);
+        Button _log_in_button = (Button) findViewById(R.id.loginActivityLogInButton);
+        if(_value) {
+            _log_in_button.setText(getResources().getString(R.string.logged_out));
+        } else {
+            _log_in_button.setText(getResources().getString(R.string.logged_in));
+        }
     }
 
     private void setActionBar() {
@@ -171,7 +219,6 @@ public class LogInActivity extends ActionBarActivity implements Runnable{
 
         _intent.putExtras(_bundle);
         setResult(RESULT_OK, _intent);
-        finish();
     }
 
     public void registerButtonOnClick(View __view) {
@@ -180,36 +227,30 @@ public class LogInActivity extends ActionBarActivity implements Runnable{
                     .add(RegistrationDialogFragment.newInstance(), "registrationDialog")
                     .commit();
         } catch(Exception __exc) {
+            Toast.makeText(getApplicationContext(), "Nie można się zarejstrować", Toast.LENGTH_LONG).show();
             Log.e("failed commit", __exc.toString());
         }
     }
 
     public void loginButtonOnClick(View __view) {
+        Button _log_in_button = (Button) findViewById(R.id.loginActivityLogInButton);
+
         if(UserManager.getInstance().isLoggedIn()) {
             UserManager.getInstance().logOut();
+            _log_in_button.setText(getResources().getString(R.string.logged_in));
+            setLogInButtonState();
         } else {
             EditText _email_field = (EditText) findViewById(R.id.logInActivityEmailEditText);
             EditText _password_field = (EditText) findViewById(R.id.logInActivityPasswordEditText);
             email = _email_field.getText().toString();
             password = _password_field.getText().toString();
+            _email_field.setText("");
+            _password_field.setText("");
 
             progressDialog =
                     ProgressDialog.show(LogInActivity.this, "Proszę czekać ...", "Trwa logowanie ...", true);
 
-            //new Thread(this);
-            try {
-                if(!UserManager.getInstance().logIn(email, password)) {
-                    progressDialog.dismiss();
-                    showCantLogInDialog();
-                } else {
-                    Toast.makeText(this, "Logowanie przebiegło pomyślnie", Toast.LENGTH_LONG).show();
-                    Button _log_in_button = (Button) findViewById(R.id.loginActivityLogInButton);
-                    _log_in_button.setText(getResources().getString(R.string.logged_out));
-                }
-            } catch(Exception __exc) {
-                Log.e("userManagerExc", __exc.toString());
-            }
-            progressDialog.dismiss();
+            handler.post(this);
         }
     }
 
@@ -225,14 +266,12 @@ public class LogInActivity extends ActionBarActivity implements Runnable{
     public void run() {
         try {
             if(!UserManager.getInstance().logIn(email, password)) {
-                progressDialog.dismiss();
-                showCantLogInDialog();
+                handler.sendEmptyMessage(0);
             } else {
-                Toast.makeText(this, "Logowanie przebiegło pomyślnie", Toast.LENGTH_LONG).show();
-                Button _log_in_button = (Button) findViewById(R.id.loginActivityLogInButton);
-                _log_in_button.setText(getResources().getString(R.string.logged_out));
+                handler.sendEmptyMessage(1);
             }
         } catch(Exception __exc) {
+            handler.sendEmptyMessage(0);
             Log.e("userManagerExc", __exc.toString());
         }
     }

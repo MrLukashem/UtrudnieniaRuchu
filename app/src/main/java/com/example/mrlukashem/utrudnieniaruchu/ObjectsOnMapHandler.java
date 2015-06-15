@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.res.Resources;
 import android.util.Log;
 
+import android.widget.Toast;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.Marker;
@@ -12,6 +13,8 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by mrlukashem on 26.03.15.
@@ -61,6 +64,10 @@ public class ObjectsOnMapHandler {
         setFields();
     }
 
+    public Context getContext() {
+        return context;
+    }
+
     public GoogleMap getMap() {
         return gMap;
     }
@@ -102,8 +109,21 @@ public class ObjectsOnMapHandler {
         }
     }
 
+    public void removeProblem(ProblemInstance __problem) {
+        int _i = 0;
+        for(ProblemInstance p : markersOnMap) {
+            if(p.equals(__problem)) {
+                break;
+            }
+            _i++;
+        }
+
+        markersOnMap.get(_i).getMarker().remove();
+        markersOnMap.remove(_i);
+    }
+
     public void addProblemToServerAndMap(ProblemInstance.ProblemData __data) {
-        if(__data.getCategoryId() >= categoriesStateArray.length
+        if (__data.getCategoryId() >= categoriesStateArray.length
                 || __data.getCategoryId() < 0) {
             throw new ArrayIndexOutOfBoundsException("Index poza zakresem tablicy kategorii");
         }
@@ -119,16 +139,21 @@ public class ObjectsOnMapHandler {
         _marker = gMap.addMarker(_options);
         try {
             _problem = ProblemInstance.newInstance(__data, _marker);
-        } catch(NullPointerException __e) {
+        } catch (NullPointerException __e) {
             _marker.remove();
             return;
         }
 
-        CallAPI.getInstance().addProblem(_problem);
         markersOnMap.add(_problem);
 
         if (!categoriesStateArray[_problem.getCategoryId()]) {
             _marker.setVisible(false);
+        }
+
+        try {
+            new Thread(new ProblemToServerSender(_problem)).start();
+        } catch (Exception __e) {
+            Log.e("addProblemToSAM", __e.toString());
         }
     }
 
@@ -229,6 +254,31 @@ public class ObjectsOnMapHandler {
                 return BitmapDescriptorFactory.HUE_VIOLET;
             default:
                 return BitmapDescriptorFactory.HUE_RED;
+        }
+    }
+
+    private class ProblemToServerSender implements Runnable {
+
+        private ProblemInstance problemInstance;
+
+        public ProblemToServerSender(ProblemInstance __problem) {
+            problemInstance = __problem;
+        }
+
+        @Override
+        public void run() {
+            try {
+                new CallAPI
+                        .GetLocationByCords(context, problemInstance)
+                        .execute(problemInstance.getCords())
+                        .get(8, TimeUnit.SECONDS);
+            } catch(Exception __e) {
+                Log.e("addProblemToSAM", __e.toString());
+                Toast.makeText(context, "Nie można nawiązać połączenia. Proszę spróbować później.", Toast.LENGTH_LONG).show();
+                return;
+            }
+
+                CallAPI.getInstance().addProblem(problemInstance);
         }
     }
 }

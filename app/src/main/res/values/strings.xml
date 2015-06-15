@@ -10,6 +10,7 @@
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="new_marker">Dodaj</string>
     <string name="setting">Opcje</string>
+    <string name="about">O projekcie</string>
     <string name="search">Szukaj</string>
     <string name="maps_categories">Rodzaj mapy</string>
     <string name="filtr">Filtruj</string>
@@ -45,6 +46,25 @@
     lub spróbuj ponownie później.</string>
     <string name="logInConnectionErrorTitle">Błąd połączenia</string>
     <string name="author">Autor:</string>
+    <string name="location">Adres:</string>
+    <string name="refresh">Odśwież</string>
+
+    <string name="aboutProject"> Wrocławska Mapa Barier - Identyfikacja miejskich utrudnień ruchu
+
+        Celem projektu jest stworzeniem aplikacji mobilnej na system Android, która w połączeniu z silnikiem map (np. OSM, Google Maps, Here) pozwoli na zebranie danych o miejskich utrudnieniach ruchu dla pieszych, rowerzystów i niepełnosprwnych takich jak np.:
+
+        Zbyt długi/krótki czas oczekiwania na zmianę światła
+        Zbyt wysokie krawężniki
+        Brak przejść dla pieszych
+        Obecność pieszych na ścieżkach rowerowych
+        Obecność rowerzystów na ścieżkach dla pieszych
+        Brak podjazdu / windy dla wózka inwalidzkiego
+        Uszkodzona nawierzchnia
+
+        Przy tworzeniu aplikacji studenci uzyskali pomoc specjalistów z firmy Tieto, którzy mają wieloletnie doświadczenie w tworzeniu podobnych rozwiązań.
+
+        Największą zaletą jest jednak stworzenie aplikacji, która ma realne zastosowanie w życiu miasta i przynosi wartość dodaną dla mieszkańców Wrocławia. Danymi tego typu zainteresowany jest Urząd Miasta, a także liczne stowarzyszenia wspierające rozwój naszego miasta.
+    </string>
 
     <string-array name="categories">
         <item>Zbyt długie oczekiwanie na światła</item>

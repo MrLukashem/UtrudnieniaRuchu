@@ -65,7 +65,7 @@ public class NavDrawerArrayAdapter extends ArrayAdapter<NavDrawerItem> {
         _items_list.add(NavDrawerItemFactory.newInstanceOfSection(context.getResources().getString(R.string.filtr), R.drawable.ic_format_paint_grey600_18dp));
         _items_list.add(NavDrawerItemFactory.newInstanceOfSection(context.getResources().getString(R.string.categories), R.drawable.ic_action_view_as_list));
         _items_list.add(NavDrawerItemFactory.newInstanceOfSection(context.getResources().getString(R.string.setting), R.drawable.ic_action_settings));
-        _items_list.add(NavDrawerItemFactory.newInstanceOfSection(context.getResources().getString(R.string.help), R.drawable.ic_action_help));
+        _items_list.add(NavDrawerItemFactory.newInstanceOfSection(context.getResources().getString(R.string.about), R.drawable.ic_action_help));
         _items_list.add(NavDrawerItemFactory.newInstanceOfSection(context.getResources().getString(R.string.log_in), R.drawable.ic_action_person));
 
         this.addAll(_items_list);

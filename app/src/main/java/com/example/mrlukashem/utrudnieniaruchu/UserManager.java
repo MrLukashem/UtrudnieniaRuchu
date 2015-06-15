@@ -1,11 +1,16 @@
 package com.example.mrlukashem.utrudnieniaruchu;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Build;
 import android.util.Log;
 import android.util.Patterns;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.math.BigInteger;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
@@ -22,56 +27,77 @@ public class UserManager {
         google
     }
 
+    public enum ErrorsKinds {
+        no_error,
+        json_error,
+        server_error
+    }
+
+    private Context context;
     private String email;
-    private String login;
     private String password;
     private String token;
     private String fbId;
     private SessionKind sessionKind;
 
-    private Integer error = 0;
-    private boolean isLoggedIn = false;
+    private ErrorsKinds error;
+    private boolean isLogged = false;
     private final static Integer MIN_SDK = 19;
-    private List<JSONObject> usersList;
+    private SharedPreferences sharedPreferences;
 
     private static UserManager userManager = new UserManager();
-    private UserManager() {}
+    private UserManager() { }
 
     public static UserManager getInstance() {
         return userManager;
     }
 
     public boolean isLoggedIn() {
-        return isLoggedIn;
+        return isLogged;
+    }
+
+    public void setContext(Context __con) {
+        context = __con;
     }
 
     public void logOut() {
-        isLoggedIn = false;
+        isLogged = false;
+        token = null;
         email = null;
-        login = null;
+        saveStateToSP();
     }
 
-    public void setError(Integer __error) {
+    public void setError(ErrorsKinds __error) {
         error = __error;
+    }
+
+    public void resetErrors() {
+        error = ErrorsKinds.no_error;
     }
 
     public boolean logInWithFB(String __email, String __id)
             throws IllegalArgumentException, NullPointerException, ClassNotFoundException {
 
-        error = 0;
+        error = ErrorsKinds.no_error;
 
         if(Build.VERSION.SDK_INT >= MIN_SDK) {
-            if(!Patterns.EMAIL_ADDRESS.matcher(Objects.requireNonNull(__email)).matches()) {
+            if(__email == null) {
+                throw new NullPointerException();
+            }
+            if(!Patterns.EMAIL_ADDRESS.matcher(__email).matches()) {
                 throw new IllegalArgumentException("Wrong email format");
+            }
+            if(__id == null) {
+                throw new NullPointerException();
             }
 
             email = __email;
-            fbId = Objects.requireNonNull(__id);
+            fbId = __id;
         } else {
             if(__email == null || __id == null) {
                 throw new NullPointerException("Param cannot be null");
             }
-            if(!Patterns.EMAIL_ADDRESS.matcher(Objects.requireNonNull(__email)).matches()) {
+            if(!Patterns.EMAIL_ADDRESS.matcher(__email).matches()) {
                 throw new IllegalArgumentException("Wrong email format");
             }
 
@@ -92,12 +118,13 @@ public class UserManager {
             return false;
         }
 
-        if(error != 0) {
-            return false;
-        }
+  //      if(error != ErrorsKinds.no_error) {
+   //         return false;
+   //     }
 
         sessionKind = SessionKind.facebook;
-        isLoggedIn = true;
+        isLogged = true;
+        saveStateToSP();
 
         return true;
     }
@@ -105,25 +132,31 @@ public class UserManager {
     public boolean logIn(String __email, String __password)
             throws IllegalArgumentException, NullPointerException, ClassNotFoundException {
 
-        error = 0;
+        error = ErrorsKinds.no_error;
 
         if(Build.VERSION.SDK_INT >= MIN_SDK) {
-            if(!Patterns.EMAIL_ADDRESS.matcher(Objects.requireNonNull(__email)).matches()) {
+            if(__email == null) {
+                throw new NullPointerException();
+            }
+            if(!Patterns.EMAIL_ADDRESS.matcher(__email).matches()) {
                 throw new IllegalArgumentException("Wrong email format");
+            }
+            if(__password == null) {
+                throw new NullPointerException();
             }
 
             email = __email;
-            password = Objects.requireNonNull(__password);
+            password = getMD5(__password);
         } else {
             if(__email == null || __password == null) {
                 throw new NullPointerException("Param cannot be null");
             }
-            if(!Patterns.EMAIL_ADDRESS.matcher(Objects.requireNonNull(__email)).matches()) {
+            if(!Patterns.EMAIL_ADDRESS.matcher(__email).matches()) {
                 throw new IllegalArgumentException("Wrong email format");
             }
 
             email = __email;
-            password = __password;
+            password = getMD5(__password);
         }
 
         try {
@@ -136,27 +169,76 @@ public class UserManager {
             Log.e("Exc", __exc.toString());
         }
 
-        if(error != 0) {
+        password = null;
+
+        if(error != ErrorsKinds.no_error) {
+            saveStateToSP();
             return false;
         }
+
         sessionKind = SessionKind.normal;
-        isLoggedIn = true;
+        isLogged = true;
+        saveStateToSP();
 
         return true;
     }
 
-    public void adduser(String __email, String __login, String __password) throws IllegalArgumentException, NullPointerException {
+    public void adduser(String __email, String __password) throws IllegalArgumentException, NullPointerException {
         if(Build.VERSION.SDK_INT >= MIN_SDK) {
-            if(!Patterns.EMAIL_ADDRESS.matcher(Objects.requireNonNull(__email)).matches()) {
+            if(__email == null) {
+                throw new NullPointerException();
+            }
+            if(!Patterns.EMAIL_ADDRESS.matcher(__email).matches()) {
                 throw new IllegalArgumentException("Wrong email format");
+            }
+            if(__password == null) {
+                throw new NullPointerException();
+            }
+            if(context == null) {
+                throw new NullPointerException("Context is not set");
             }
 
             CallAPI.getInstance().addUser(
                     __email,
-                    Objects.requireNonNull(__login),
-                    Objects.requireNonNull(__password));
+                    getMD5(__password),
+                    context);
         } else {
-            if(__email == null || __login == null || __password == null) {
+            if(__email == null || __password == null) {
+                throw new NullPointerException("Param cannot be null");
+            }
+            if(!Patterns.EMAIL_ADDRESS.matcher(__email).matches()) {
+                throw new IllegalArgumentException("Wrong email format");
+            }
+            if(context == null) {
+                throw new NullPointerException("Context is not set");
+            }
+
+            CallAPI.getInstance().addUser(
+                    __email,
+                    getMD5(__password),
+                    context
+            );
+        }
+    }
+
+    public void addUserWithFB(String __email, String __fb_id) throws IllegalArgumentException, NullPointerException {
+        if(Build.VERSION.SDK_INT >= MIN_SDK) {
+            if(__email == null) {
+                throw new NullPointerException();
+            }
+            if(!Patterns.EMAIL_ADDRESS.matcher(__email).matches()) {
+                throw new IllegalArgumentException("Wrong email format");
+            }
+            if(__fb_id == null) {
+                throw new NullPointerException();
+            }
+
+            CallAPI.getInstance().addUserWithFB(
+                    __email,
+                    __fb_id,
+                    context);
+        } else {
+            if(__email == null || __fb_id == null) {
                 throw new NullPointerException("Param cannot be null");
             }
             if(!Patterns.EMAIL_ADDRESS.matcher(__email).matches()) {
@@ -165,8 +247,8 @@ public class UserManager {
 
             CallAPI.getInstance().addUser(
                     __email,
-                    __login,
-                    __password
+                    __fb_id,
+                    context
             );
         }
     }
@@ -175,29 +257,26 @@ public class UserManager {
         return email;
     }
 
-    public void setUsersList(List<JSONObject> __usersList) {
-        usersList = __usersList;
+    public void saveStateToSP() {
+        if(sharedPreferences != null) {
+            sharedPreferences.edit()
+                    .putBoolean("isLogged", isLogged)
+                    .putString("email", email)
+                    .apply();
+        }
     }
 
-    public boolean isUserExist(String __email) {
-        if(usersList == null) {
-            return false;
+    public void loadLastStateFromSP() {
+        if(sharedPreferences != null) {
+            Boolean _value = sharedPreferences.getBoolean("isLogged", false);
+            String _email = sharedPreferences.getString("email", "");
+            isLogged = _value;
+            email = _email;
         }
+    }
 
-        String _email;
-        for(JSONObject json : usersList) {
-            try {
-                _email = json.getString("email");
-                if(__email.equals(_email)) {
-                    return true;
-                }
-            } catch (JSONException __json_exc) {
-                Log.e("json exception", __json_exc.toString());
-                return false;
-            }
-        }
-
-        return false;
+    public void setSharedPreferences(SharedPreferences __sharedPreferences) {
+        sharedPreferences = __sharedPreferences;
     }
 
     public void setToken(String __token) {
@@ -222,6 +301,22 @@ public class UserManager {
             return true;
         } else {
             return false;
+        }
+    }
+
+    public static String getMD5(String __input) {
+        try {
+            MessageDigest _md = MessageDigest.getInstance("MD5");
+            byte[] messageDigest = _md.digest(__input.getBytes());
+            BigInteger _number = new BigInteger(1, messageDigest);
+            String _hashtext = _number.toString(16);
+            while (_hashtext.length() < 32) {
+                _hashtext = "0" + _hashtext;
+            }
+            return _hashtext;
+        }
+        catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
         }
     }
 }

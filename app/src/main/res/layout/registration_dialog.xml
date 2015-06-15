@@ -15,12 +15,6 @@
     <EditText
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:id="@+id/loginEditText"
-            android:hint="@string/login"
-            android:layout_gravity="center_horizontal"/>
-    <EditText
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
             android:id="@+id/passwordEditText"
             android:hint="@string/password"
             android:layout_gravity="center_horizontal"/>

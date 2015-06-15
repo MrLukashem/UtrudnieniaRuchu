@@ -25,6 +25,7 @@ public class FormDialogFragment extends DialogFragment
     private Spinner spinner;
     private ArrayAdapter<String> spinnerAdapter;
     private int selectedItem;
+    private final int MIN_SIZE = 5;
 
     public static FormDialogFragment newInstance() {
         FormDialogFragment _instance = new FormDialogFragment();
@@ -76,11 +77,21 @@ public class FormDialogFragment extends DialogFragment
                 EditText _content = (EditText)customView.findViewById(R.id.newMarkerFormContentEditText);
                 CheckBox _check_box = (CheckBox)customView.findViewById(R.id.currentPosCheckBox);
 
-                NewMarkerOnMap _setter = (NewMarkerOnMap)getActivity();
-                _setter.createMarkerFromFormData(
-                        _check_box.isChecked(),
-                        selectedItem,
-                        _content.getText().toString());
+                if(_content.getText().toString().length() > MIN_SIZE) {
+                    NewMarkerOnMap _setter = (NewMarkerOnMap) getActivity();
+                    _setter.createMarkerFromFormData(
+                            _check_box.isChecked(),
+                            selectedItem,
+                            _content.getText().toString()
+                    );
+                } else {
+                    Toast
+                            .makeText(
+                                    getActivity().getApplicationContext(),
+                                    "Nie można dodać utrudnienia - źle wypełniony formularz",
+                                    Toast.LENGTH_LONG)
+                            .show();
+                }
 
                 dismiss();
             }

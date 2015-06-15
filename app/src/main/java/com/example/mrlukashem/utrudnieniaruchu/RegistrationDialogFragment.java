@@ -55,7 +55,6 @@ public class RegistrationDialogFragment extends DialogFragment {
                 .setTitle(getResources().getString(R.string.register_info));
 
         emailEditText = (EditText)_my_view.findViewById(R.id.emailTextEdit);
-        loginEditText = (EditText)_my_view.findViewById(R.id.loginEditText);
         passwordEditText = (EditText)_my_view.findViewById(R.id.passwordEditText);
 
         return _builder.create();
@@ -83,9 +82,9 @@ public class RegistrationDialogFragment extends DialogFragment {
                 } else {
                     UserManager.getInstance().adduser(
                             emailEditText.getText().toString(),
-                            loginEditText.getText().toString(),
                             passwordEditText.getText().toString());
                     //TODO: jezeli sie nie powiedzie to toast?
+
 
                     dismiss();
                     //TODO: Może jakiś Toast w stylu: Dodano użytkownika / rejestracja przebiegła pomyślnie, a może zrobić to w loginActivity

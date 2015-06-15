@@ -3,24 +3,20 @@ package com.example.mrlukashem.utrudnieniaruchu;
 import android.app.Dialog;
 import android.app.DialogFragment;
 import android.app.Fragment;
-import android.app.FragmentManager;
 import android.app.FragmentTransaction;
-import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
-import android.hardware.Camera;
 import android.location.Location;
 import android.location.LocationListener;
-import android.location.LocationManager;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
+import android.preference.PreferenceFragment;
 import android.preference.PreferenceManager;
 import android.provider.MediaStore;
-import android.provider.Settings;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
@@ -30,8 +26,9 @@ import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.*;
-
 import com.facebook.FacebookSdk;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -40,21 +37,19 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.UiSettings;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
-
 import android.net.Uri;
+import java.io.*;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.Objects;
-import java.util.prefs.PreferenceChangeEvent;
-import java.util.prefs.PreferenceChangeListener;
 
 /**
  * Created by mrlukashem
  */
-/*
-TODO: Settingsy!
-TODO: Scustomizować dialog markera
- */
 public class MainActivity extends ActionBarActivity
-        implements OnMapReadyCallback, NewMarkerOnMap, SharedPreferences.OnSharedPreferenceChangeListener, LocationListener {
+        implements OnMapReadyCallback, NewMarkerOnMap, SharedPreferences.OnSharedPreferenceChangeListener, LocationListener, RefreshSetup {
 
     //map fields
     private GoogleMap gMap;
@@ -79,12 +74,12 @@ public class MainActivity extends ActionBarActivity
     private CategoriesChoiceDialogFragment chooseCatDialog;
     //ActionBar
     private ActionBar aBar;
+    private MenuItem refreshMenuItem;
 
     //new marker form data
     private boolean isFromCurrentPosition;
     private String tempContentFromNewMarkerForm;
     private int tempCatIdFromMarkerForm;
-    private LatLng lastLongClickLatLng;
 
     private static final int NEW_MARKER = 0;
     private static final int MAP_SET_TERRAIN = 1;
@@ -92,7 +87,7 @@ public class MainActivity extends ActionBarActivity
     private static final int CATEGORIES_FILTER = 3;
     private static final int CATEGORIES_LIST = 4;
     private static final int OPTIONS = 5;
-    private static final int HELP = 6;
+    private static final int ABOUT = 6;
     private static final int LOG_IN = 7;
 
     //shared preferences
@@ -100,17 +95,15 @@ public class MainActivity extends ActionBarActivity
 
     //refeshing
     private final long minuteInMs = 1000 * 60;
-    private long refreshDelay = minuteInMs * 20; //1000ms * 60(=1min) * 20 = 20min
+    private long refreshDelay = minuteInMs * 1; //1000ms * 60(=1min) * 20 = 20min
     private Handler refreshingHandler = new Handler();
     private boolean refresh = true;
 
+    private static File imgFile = null;
+
     //request code
     private final int requestCode = 1;
-
     private static final int GET_IMG_REQUEST_CODE = 2;
-    ImageView imageHandler;
-    //is Logged in?
-    private static boolean isLoggedIn = false;
 
     private GPSTracker gpsTracker;
 
@@ -118,23 +111,59 @@ public class MainActivity extends ActionBarActivity
         @Override
         public void run() {
             if(refresh) {
+                Log.e("odswiezanie", "odswieza!!!  !!!! !!!");
                 CallAPI.getInstance().getProblemsToHandler();
-                refreshingHandler.postDelayed(this, refreshDelay);
+                try {
+                   refreshingHandler.postDelayed(refreshRunnable, refreshDelay);
+                } catch (Exception __e) {
+                    Log.e("refresingError", __e.toString());
+                }
             }
         }
     };
+
+    private Calendar calendar;
 
     //preference screen fields
     private final String KEY_PREF_NO_REFRESH = "applicationRefresing";
     private final String KEY_PREF_APLICATION_REFRESING_DELAY = "applicationRefresingDelay";
 
+    public static final int MEDIA_TYPE_IMAGE = 1;
+    public static final int MEDIA_TYPE_VIDEO = 2;
+
+    private static Uri getOutputMediaFileUri(int type){
+        return Uri.fromFile(getOutputMediaFile(type));
+    }
+
+    private static File getOutputMediaFile(int type){
+        File _mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(
+                Environment.DIRECTORY_PICTURES), "MyCameraApp");
+
+        if (! _mediaStorageDir.exists()){
+            if (! _mediaStorageDir.mkdirs()){
+                Log.d("MyCameraApp", "failed to create directory");
+                return null;
+            }
+        }
+
+        String _timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        File mediaFile;
+        if (type == MEDIA_TYPE_IMAGE){
+            mediaFile = new File(_mediaStorageDir.getPath() + File.separator +
+                    "IMG_"+ _timeStamp + ".jpg");
+        } else if(type == MEDIA_TYPE_VIDEO) {
+            mediaFile = new File(_mediaStorageDir.getPath() + File.separator +
+                    "VID_"+ _timeStamp + ".mp4");
+        } else {
+            return null;
+        }
+
+        return mediaFile;
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        if(getIntent().getBooleanExtra("for logout", false)) {
-            finish();
-            }
 
         FacebookSdk.sdkInitialize(getApplicationContext());
         ObjectsOnMapHandler.objectsOnMapHandler.setObjectsOnMapHandler(gMap, getApplicationContext());
@@ -142,12 +171,14 @@ public class MainActivity extends ActionBarActivity
         enableListeners();
         setActionBar();
         setSharedPreferences();
-    //    getLogInfoFromSP();
+        UserManager.getInstance().setSharedPreferences(sharedPreferences);
+        UserManager.getInstance().loadLastStateFromSP();
+        UserManager.getInstance().setContext(getApplicationContext());
 
         mapFragment = MapFragment.newInstance();
         FragmentTransaction fragmentTransaction =
                 getFragmentManager().beginTransaction();
-        fragmentTransaction.add(R.id.content_frame, mapFragment);
+        fragmentTransaction.replace(R.id.content_frame, mapFragment, "mapFragment");
         fragmentTransaction.commit();
         mapFragment.getMapAsync(this);
 
@@ -170,8 +201,53 @@ public class MainActivity extends ActionBarActivity
         drawerLayout.setDrawerListener(drawerToggle);
         aBar.setBackgroundDrawable(new ColorDrawable(Color.parseColor("#0099CC")));
 
-        refreshingHandler.postDelayed(refreshRunnable, refreshDelay);
+        String _delay = sharedPreferences.getString(KEY_PREF_APLICATION_REFRESING_DELAY, "60");
+        refreshDelay = minuteInMs * Long.parseLong(_delay);
+        refreshingHandler.postDelayed(refreshRunnable, 10000);
+        calendar = Calendar.getInstance();
+
+        Intent _intent = new Intent(getApplicationContext(), LogInActivity.class);
+        _intent.putExtra("logout", true);
+        startActivity(_intent);
+        UserManager.getInstance().logOut();
         setLogInfo();
+    }
+
+    @Override
+    public void onBackPressed() {
+        Fragment _map_frag = getFragmentManager().findFragmentByTag("mapFragment");
+        Fragment _preference = getFragmentManager().findFragmentByTag("preferenceScreen");
+        Fragment _categories = getFragmentManager().findFragmentByTag("categoriesList");
+        Fragment _help = getFragmentManager().findFragmentByTag("helpScreen");
+        FragmentTransaction _transaction = getFragmentManager().beginTransaction();
+
+        if(_map_frag != null) {
+            _transaction.commit();
+            finish();
+            return;
+        } else if(_preference != null) {
+            _transaction.remove(_preference);
+        } else if(_categories != null) {
+            _transaction.remove(_categories);
+        } else if(_help != null) {
+            _transaction.remove(_help);
+        } else {
+            _transaction.commit();
+            finish();
+            return;
+        }
+
+        aBar.setDisplayHomeAsUpEnabled(true);
+        aBar.setHomeButtonEnabled(true);
+        mapFragment.getMapAsync(this);
+        _transaction
+                .replace(R.id.content_frame, mapFragment, "mapFragment")
+                .commit();
+        drawerToggle = new ActionBarDrawerToggle(this, drawerLayout,
+                R.string.app_name, R.string.app_name);
+        drawerToggle.syncState();
+
+        drawerLayout.setDrawerListener(drawerToggle);
     }
 
     @Override
@@ -179,16 +255,50 @@ public class MainActivity extends ActionBarActivity
         switch(__requestCode) {
             case requestCode:
                 if (__resultCode == RESULT_OK) {
-                    Bundle _res = __data.getExtras();
-                    Boolean _result = _res.getBoolean("log_in_status");
-                    isLoggedIn = _result;
                     setLogInfo();
                 }
                 break;
             case GET_IMG_REQUEST_CODE:
-                Uri _img_uri = __data.getData();
+                File tempFile = new File(this.getFilesDir().getAbsolutePath(), "temp_image");
+
+                try {
+                    if(__data == null) {
+                        return;
+                    }
+
+                    Uri _uri = __data.getData();
+                    tempFile.createNewFile();
+                    copyAndClose(this.getContentResolver().openInputStream(_uri), new FileOutputStream(tempFile));
+                } catch (IOException e) {
+                    //Log Error
+                }
+
+                Uri newUri = Uri.fromFile(tempFile);
+                imgFile = new File(newUri.getPath());
                 break;
         }
+    }
+
+    private void copyAndClose(InputStream inputStream, FileOutputStream fileOutputStream)
+    throws IOException {
+        InputStream initialStream = inputStream;
+        byte[] buffer = new byte[inputStream.available()];
+        initialStream.read(buffer);
+
+        OutputStream outStream = fileOutputStream;
+        outStream.write(buffer);
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        UserManager.getInstance().loadLastStateFromSP();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        UserManager.getInstance().saveStateToSP();
     }
 
     @Override
@@ -197,7 +307,8 @@ public class MainActivity extends ActionBarActivity
         Intent _intent = new Intent(getApplicationContext(), LogInActivity.class);
         _intent.putExtra("logout", true);
         startActivity(_intent);
-        sharedPreferences.edit().putBoolean("fb_log_info", isLoggedIn).apply();
+
+        UserManager.getInstance().logOut();
     }
 
     @Override
@@ -234,7 +345,7 @@ public class MainActivity extends ActionBarActivity
         }
         else
         if(id == R.id.action_add_marker) {
-            if(isLoggedIn) {
+            if(UserManager.getInstance().isLoggedIn()) {
                 prepareToNewMarker();
             } else {
                 Toast _toast = Toast.makeText(
@@ -260,6 +371,22 @@ public class MainActivity extends ActionBarActivity
         if(id == R.id.set_start_location) {
             gMap.moveCamera(CameraUpdateFactory.newLatLngZoom(WROCLAW_RYNEK, 14));
         }
+        else
+        if(id == R.id.refresh) {
+            if(refreshMenuItem == null) {
+                refreshMenuItem = __item;
+            }
+
+            LayoutInflater _inflater = getLayoutInflater();
+            ImageView _iv = (ImageView)_inflater.inflate(R.layout.iv_refresh, null);
+            Animation _rotation = AnimationUtils.loadAnimation(this, R.anim.rotate_refresh);
+            _rotation.setRepeatCount(Animation.INFINITE);
+            _iv.startAnimation(_rotation);
+            __item.setActionView(_iv);
+
+            CallAPI.getInstance().getProblemsToHandlerWithRefreshBtn(this);
+            Toast.makeText(getApplicationContext(), "Odświeżam...", Toast.LENGTH_LONG).show();
+        }
 
         return super.onOptionsItemSelected(__item);
     }
@@ -271,6 +398,7 @@ public class MainActivity extends ActionBarActivity
                 boolean _value = __sharedPreferences.getBoolean(__key, true);
                 if (_value) {
                     refreshingHandler.removeCallbacks(refreshRunnable);
+                    Log.e("odswiezanie", "od");
                     refreshingHandler.postDelayed(refreshRunnable, refreshDelay);
                 } else {
                     refreshingHandler.removeCallbacks(refreshRunnable);
@@ -286,7 +414,9 @@ public class MainActivity extends ActionBarActivity
                 Log.e("delay->", _delay);
                 refreshDelay = minuteInMs * Long.parseLong(_delay);
             } catch(Exception __e) {
-                Log.e("Preference error", __e.toString());
+                Log.e("Preference error", __e.toString());String _delay = __sharedPreferences.getString(__key, "60");
+                Log.e("delay->", _delay);
+                refreshDelay = minuteInMs * Long.parseLong(_delay);
             }
         }
     }
@@ -327,10 +457,23 @@ public class MainActivity extends ActionBarActivity
     public void onProviderDisabled(String __provider) {
     }
 
+    @Override
+    public void resetUpdating() {
+        if(refreshMenuItem.getActionView()!=null) {
+            refreshMenuItem.getActionView().clearAnimation();
+            refreshMenuItem.setActionView(null);
+        }
+    }
+
+    public static File getImgResource() {
+        return imgFile;
+    }
+
     public void loadImageButton(View __view) {
         Intent _intent = new Intent();
         _intent.setType("image/*");
         _intent.setAction(Intent.ACTION_GET_CONTENT);
+        _intent.addCategory(Intent.CATEGORY_OPENABLE);
         startActivityForResult(Intent.createChooser(_intent, "Wybierz zdjęcie!"), GET_IMG_REQUEST_CODE);
     }
 
@@ -364,9 +507,17 @@ public class MainActivity extends ActionBarActivity
                 TextView _title = (TextView) _custom_view.findViewById(R.id.titleWindowInfoTextView);
                 _title.setText(__marker.getTitle());
 
-                TextView _author = (TextView)_custom_view.findViewById(R.id.authorName);
-                String _nick = _problem.getEmail().split("@")[0];
-                _author.setText(_nick);
+                TextView _location = (TextView) _custom_view.findViewById(R.id.location);
+                String _nick = _problem.getAddress();
+                if (_nick != null) {
+                    _location.setText(_nick);
+                }
+
+                TextView _date = (TextView) _custom_view.findViewById(R.id.calendar);
+                String _value = _problem.getDate();
+                if (_date != null) {
+                    _date.setText(_value);
+                }
 
                 return _custom_view;
             }
@@ -445,19 +596,25 @@ public class MainActivity extends ActionBarActivity
                         showFilterCategoriesDialog();
                         break;
                     case CATEGORIES_LIST:
-                        /*
-                            TODO: Zrobienie jakiś podstawowych opcji w nowym Activity
-                         */
+                        showCategoiesListFragment();
                         break;
                     case OPTIONS:
                         showPreferenceScreen();
                         break;
-                    case HELP:
-
+                    case ABOUT:
+                        showHelpFragment();
                         break;
                     case LOG_IN:
-                        Intent intent = new Intent(getApplicationContext(), LogInActivity.class);
-                        startActivityForResult(intent, requestCode);
+                        if(UserManager.getInstance().isLoggedIn()) {
+                            UserManager.getInstance().logOut();
+                            setLogInfo();
+                            Intent _intent = new Intent(getApplicationContext(), LogInActivity.class);
+                            _intent.putExtra("logout", true);
+                            startActivity(_intent);
+                        } else {
+                            Intent _intent = new Intent(getApplicationContext(), LogInActivity.class);
+                            startActivityForResult(_intent, requestCode);
+                        }
                         break;
                     default:
                         break;
@@ -469,14 +626,16 @@ public class MainActivity extends ActionBarActivity
         longClickListener = new GoogleMap.OnMapLongClickListener() {
             @Override
             public void onMapLongClick(LatLng __latLng) {
+                DateFormat _dateFormat = new SimpleDateFormat("yyyy/MM/dd");
                 ProblemInstance.ProblemData _data =
                         ProblemInstance.createProblemData(
                                 tempContentFromNewMarkerForm,
                                 UserManager.getInstance().getEmail(),
+                                _dateFormat.format(calendar.getTime()),
                                 tempCatIdFromMarkerForm,
                                 __latLng);
-                ObjectsOnMapHandler.objectsOnMapHandler.addProblemToServerAndMap(_data);
 
+                ObjectsOnMapHandler.objectsOnMapHandler.addProblemToServerAndMap(_data);
                 gMap.setOnMapLongClickListener(null);
             }
         };
@@ -488,10 +647,14 @@ public class MainActivity extends ActionBarActivity
 
     @Override
     public void createMarkerFromFormData(boolean __is_from_current_position, int __category_id, String __content) {
+        if(__content == null) {
+            return;
+        }
+
         setFormData(
                 __is_from_current_position,
                 __category_id,
-                Objects.requireNonNull(__content, "Content agr is null"));
+                __content);
         addMarkerFromFormData();
     }
 
@@ -538,10 +701,12 @@ public class MainActivity extends ActionBarActivity
             }
 
             LatLng _latlng = new LatLng(gpsTracker.getLastLatitude(), gpsTracker.getLastLongitude());
+            DateFormat _dateFormat = new SimpleDateFormat("yyyy/MM/dd");
             ProblemInstance.ProblemData _data =
                     ProblemInstance.createProblemData(
                             tempContentFromNewMarkerForm,
                             UserManager.getInstance().getEmail(),
+                            _dateFormat.format(calendar.getTime()),
                             tempCatIdFromMarkerForm,
                             _latlng
                             );
@@ -556,24 +721,81 @@ public class MainActivity extends ActionBarActivity
     }
 
     private void setLogInfo() {
-        if(isLoggedIn) {
+        if(UserManager.getInstance().isLoggedIn()) {
             drawerListAdapter.setLoggedIn();
         } else {
             drawerListAdapter.setLoggedOut();
         }
     }
 
-    private void getLogInfoFromSP() {
-        isLoggedIn = sharedPreferences.getBoolean("fb_log_info", false);
-    }
-
     private void showPreferenceScreen() {
         drawerToggle.setDrawerIndicatorEnabled(false);
-        getFragmentManager().beginTransaction()
+        FragmentTransaction _transaction = getFragmentManager().beginTransaction();
+        _transaction
                 .remove(mapFragment)
                 .commit();
+
+        Fragment _categories_list =
+                getFragmentManager().findFragmentByTag("categoriesList");
+        if(_categories_list != null) {
+            _transaction.remove(_categories_list);
+        }
+        Fragment _help_fragment =
+                getFragmentManager().findFragmentByTag("helpScreen");
+        if(_help_fragment != null) {
+            _transaction.remove(_help_fragment);
+        }
+
         getFragmentManager().beginTransaction()
-                .replace(R.id.content_frame, new PreferenceScreen())
+                .replace(R.id.content_frame, new PreferenceScreen(), "preferenceScreen")
+                .addToBackStack("preferenceScreen")
+                .commit();
+        drawerLayout.closeDrawers();
+    }
+
+    private void showCategoiesListFragment() {
+        drawerToggle.setDrawerIndicatorEnabled(false);
+        FragmentTransaction _transaction = getFragmentManager().beginTransaction();
+        _transaction
+                .remove(mapFragment)
+                .commit();
+        Fragment _preferenceFragment =
+                getFragmentManager().findFragmentByTag("preferenceScreen");
+        if(_preferenceFragment != null) {
+                _transaction.remove(_preferenceFragment);
+        }
+        Fragment _help_fragment =
+                getFragmentManager().findFragmentByTag("helpScreen");
+        if(_help_fragment != null) {
+            _transaction.remove(_help_fragment);
+        }
+
+        getFragmentManager().beginTransaction()
+                .replace(R.id.content_frame, CategoriesListFragment.newInstance(), "categoriesList")
+                .commit();
+        drawerLayout.closeDrawers();
+    }
+
+    private void showHelpFragment() {
+        drawerToggle.setDrawerIndicatorEnabled(false);
+        FragmentTransaction _transaction = getFragmentManager().beginTransaction();
+        _transaction
+                .remove(mapFragment)
+                .commit();
+
+        Fragment _preferenceFragment =
+                getFragmentManager().findFragmentByTag("preferenceScreen");
+        if(_preferenceFragment != null) {
+            _transaction.remove(_preferenceFragment);
+        }
+        Fragment _categories_list =
+                getFragmentManager().findFragmentByTag("categoriesList");
+        if(_categories_list != null) {
+            _transaction.remove(_categories_list);
+        }
+
+        getFragmentManager().beginTransaction()
+                .replace(R.id.content_frame, HelpFragment.newInstance().setMapFragment(mapFragment))
                 .commit();
         drawerLayout.closeDrawers();
     }
@@ -606,14 +828,14 @@ public class MainActivity extends ActionBarActivity
 
     private void showMarkerContentDialog(ProblemInstance __problem) {
         FragmentTransaction _f_transaction = getFragmentManager().beginTransaction();
-        DialogFragment _f_dialog = (DialogFragment)getFragmentManager().findFragmentByTag("MarkerContentDialog");
+        DialogFragment _f_dialog = (DialogFragment)getFragmentManager().findFragmentByTag("markerContent");
         if(_f_dialog != null) {
             _f_transaction.remove(_f_dialog);
         }
         _f_transaction.addToBackStack(null);
 
         MarkerContentDialogFragment _f = MarkerContentDialogFragment.newInstance(__problem);
-        _f_transaction.add(_f, "FilterDialog");
+        _f_transaction.add(_f, "markerContent");
         _f_transaction.commit();
     }
 }

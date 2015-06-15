@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" android:layout="@color/wallet_bright_foreground_holo_dark">
     <ListPreference     android:title="Odświeżanie mapy"
         android:summary="Ta opcja umożliwia odświeżanie mapy co określoną jednostkę czasu. Pamiętaj, że jest wymagane połączenie z internetem."
         android:key="applicationRefresingDelay"
@@ -8,7 +8,7 @@
         android:entryValues="@array/DelayArrayValues" />
 
     <CheckBoxPreference android:title="Automatyczne odświeżanie"
-        android:defaultValue="true"
+        android:defaultValue="false"
         android:summary="Ta opcja wyłącza lub włącza automatyczne odświeżanie mapy."
         android:key="applicationRefresing" />
 </PreferenceScreen>
